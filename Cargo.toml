@@ -142,8 +142,9 @@ profile-with-tracy = ["profiling/profile-with-tracy", "tracy-client/default", "s
 profile-with-tracy-ondemand = ["profile-with-tracy", "tracy-client/ondemand", "tracy-client/manual-lifetime"]
 # Enables Tracy allocation profiling.
 profile-with-tracy-allocations = ["profile-with-tracy"]
-# Enables dinit integration (global environment).
-dinit = []
+# Enables the Anland legacy producer backend (requires the separately built C bridge).
+anland = []
+
 
 [lints.clippy]
 new_without_default = "allow"

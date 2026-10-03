@@ -1,0 +1,60 @@
+name: Anland legacy v5 Arch Linux ARM64 build
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - '.github/workflows/anland-arch-arm64.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/**'
+      - 'niri-config/**'
+      - 'niri-ipc/**'
+      - 'resources/**'
+      - 'docs/anland/**'
+      - 'packaging/**'
+    tags:
+      - 'anland-v*'
+  pull_request:
+    paths:
+      - '.github/workflows/anland-arch-arm64.yml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - 'src/**'
+      - 'niri-config/**'
+      - 'niri-ipc/**'
+      - 'resources/**'
+      - 'docs/anland/**'
+      - 'packaging/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    container: archlinux:latest
+    steps:
+      - name: Install checkout prerequisites
+        run: pacman -Syu --noconfirm --needed git
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Install Arch build dependencies
+        run: >-
+          pacman -Syu --noconfirm --needed base-devel rust pkgconf clang cmake
+          systemd-libs mesa libglvnd libxkbcommon wayland libinput dbus
+          seatd pipewire pango libdisplay-info libadwaita
+      - name: Build and create tar.xz archive
+        run: bash packaging/build-arch-aarch64.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: niri-anland-archlinux-aarch64
+          path: |
+            dist/*.tar.xz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30

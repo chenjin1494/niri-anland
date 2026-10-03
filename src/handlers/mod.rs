@@ -58,6 +58,8 @@ use smithay::wayland::selection::wlr_data_control::{
     DataControlHandler as WlrDataControlHandler, DataControlState as WlrDataControlState,
 };
 use smithay::wayland::selection::{SelectionHandler, SelectionTarget};
+#[cfg(feature = "anland")]
+use smithay::wayland::selection::SelectionSource;
 use smithay::wayland::session_lock::{
     LockSurface, SessionLockHandler, SessionLockManagerState, SessionLocker,
 };
@@ -65,6 +67,7 @@ use smithay::wayland::xdg_activation::{
     XdgActivationHandler, XdgActivationState, XdgActivationToken, XdgActivationTokenData,
 };
 
+use crate::backend::Backend;
 pub use crate::handlers::xdg_shell::KdeDecorationsModeState;
 use crate::input::click_grab::ClickGrab;
 use crate::layout::workspace::WorkspaceId;
@@ -293,8 +296,55 @@ impl KeyboardShortcutsInhibitHandler for State {
     }
 }
 
+#[cfg(feature = "anland")]
+fn is_plain_text_mime(mime_type: &str) -> bool {
+    matches!(
+        mime_type.split(';').next(),
+        Some(media_type) if media_type.trim().eq_ignore_ascii_case("text/plain")
+    )
+}
+
+#[cfg(all(test, feature = "anland"))]
+mod anland_mime_tests {
+    use super::is_plain_text_mime;
+
+    #[test]
+    fn anland_plain_text_mime_accepts_charset_parameters() {
+        assert!(is_plain_text_mime("text/plain"));
+        assert!(is_plain_text_mime("text/plain;charset=utf-8"));
+        assert!(is_plain_text_mime("Text/Plain; charset=UTF-8"));
+    }
+
+    #[test]
+    fn anland_plain_text_mime_rejects_other_media_types() {
+        assert!(!is_plain_text_mime("application/octet-stream"));
+        assert!(!is_plain_text_mime("text/plain-old"));
+    }
+}
+
 impl SelectionHandler for State {
     type SelectionUserData = Arc<[u8]>;
+
+    #[cfg(feature = "anland")]
+    fn new_selection(
+        &mut self,
+        ty: SelectionTarget,
+        source: Option<SelectionSource>,
+        _seat: Seat<Self>,
+    ) {
+        if ty == SelectionTarget::Clipboard {
+            let text_mime = source.as_ref().and_then(|source| {
+                source
+                    .mime_types()
+                    .iter()
+                    .find(|mime_type| is_plain_text_mime(mime_type))
+                    .cloned()
+            });
+            if let (Some(mime_type), Backend::Anland(anland)) = (text_mime, &self.backend) {
+                let _ = anland.clipboard_selection_tx().send(mime_type);
+            }
+        }
+    }
 
     fn send_selection(
         &mut self,

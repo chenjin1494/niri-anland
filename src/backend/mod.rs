@@ -18,14 +18,18 @@ pub use tty::Tty;
 pub mod winit;
 pub use winit::Winit;
 
-pub mod headless;
-pub use headless::Headless;
+#[cfg(feature = "anland")]
+pub mod anland;
+#[cfg(feature = "anland")]
+pub use anland::Anland;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Backend {
     Tty(Tty),
     Winit(Winit),
     Headless(Headless),
+    #[cfg(feature = "anland")]
+    Anland(Anland),
 }
 
 #[derive(PartialEq, Eq)]
@@ -62,6 +66,8 @@ impl Backend {
             Backend::Tty(tty) => tty.init(niri),
             Backend::Winit(winit) => winit.init(niri),
             Backend::Headless(headless) => headless.init(niri),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.init(niri),
         }
     }
 
@@ -70,6 +76,8 @@ impl Backend {
             Backend::Tty(tty) => tty.seat_name(),
             Backend::Winit(winit) => winit.seat_name(),
             Backend::Headless(headless) => headless.seat_name(),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.seat_name(),
         }
     }
 
@@ -81,6 +89,8 @@ impl Backend {
             Backend::Tty(tty) => tty.with_primary_renderer(f),
             Backend::Winit(winit) => winit.with_primary_renderer(f),
             Backend::Headless(headless) => headless.with_primary_renderer(f),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.with_primary_renderer(f),
         }
     }
 
@@ -93,6 +103,8 @@ impl Backend {
             Backend::Tty(tty) => tty.primary_render_node(),
             Backend::Winit(winit) => winit.primary_render_node(),
             Backend::Headless(headless) => headless.primary_render_node(),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => None,
         }
     }
 
@@ -106,6 +118,8 @@ impl Backend {
             Backend::Tty(tty) => tty.render(niri, output, target_presentation_time),
             Backend::Winit(winit) => winit.render(niri, output),
             Backend::Headless(headless) => headless.render(niri, output),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.render(niri, output),
         }
     }
 
@@ -119,6 +133,8 @@ impl Backend {
                 }
             }),
             Backend::Tty(_) | Backend::Headless(_) => config.input.mod_key.unwrap_or(ModKey::Super),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => config.input.mod_key.unwrap_or(ModKey::Super),
         }
     }
 
@@ -127,6 +143,8 @@ impl Backend {
             Backend::Tty(tty) => tty.change_vt(vt),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -135,6 +153,8 @@ impl Backend {
             Backend::Tty(tty) => tty.suspend(),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -143,6 +163,8 @@ impl Backend {
             Backend::Tty(tty) => tty.toggle_debug_tint(),
             Backend::Winit(winit) => winit.toggle_debug_tint(),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -151,6 +173,8 @@ impl Backend {
             Backend::Tty(tty) => tty.import_dmabuf(dmabuf),
             Backend::Winit(winit) => winit.import_dmabuf(dmabuf),
             Backend::Headless(headless) => headless.import_dmabuf(dmabuf),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.import_dmabuf(dmabuf),
         }
     }
 
@@ -159,6 +183,8 @@ impl Backend {
             Backend::Tty(tty) => tty.early_import(surface),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -167,6 +193,8 @@ impl Backend {
             Backend::Tty(tty) => tty.ipc_outputs(),
             Backend::Winit(winit) => winit.ipc_outputs(),
             Backend::Headless(headless) => headless.ipc_outputs(),
+            #[cfg(feature = "anland")]
+            Backend::Anland(anland) => anland.ipc_outputs(),
         }
     }
 
@@ -178,6 +206,8 @@ impl Backend {
             Backend::Tty(tty) => tty.primary_gbm_device(),
             Backend::Winit(winit) => winit.gbm_device(),
             Backend::Headless(_) => None,
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => None,
         }
     }
 
@@ -186,6 +216,8 @@ impl Backend {
             Backend::Tty(tty) => tty.set_monitors_active(active),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -194,6 +226,8 @@ impl Backend {
             Backend::Tty(tty) => tty.set_output_on_demand_vrr(niri, output, enable_vrr),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -202,6 +236,8 @@ impl Backend {
             Backend::Tty(tty) => tty.update_ignored_nodes_config(niri),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -210,6 +246,8 @@ impl Backend {
             Backend::Tty(tty) => tty.on_output_config_changed(niri),
             Backend::Winit(_) => (),
             Backend::Headless(_) => (),
+            #[cfg(feature = "anland")]
+            Backend::Anland(_) => (),
         }
     }
 
@@ -237,11 +275,13 @@ impl Backend {
         }
     }
 
-    pub fn headless(&mut self) -> &mut Headless {
-        if let Self::Headless(v) = self {
+    #[cfg(feature = "anland")]
+    pub fn anland(&mut self) -> &mut Anland {
+        if let Self::Anland(v) = self {
             v
         } else {
-            panic!("backend is not Headless")
+            panic!("backend is not Anland")
         }
     }
 }
+

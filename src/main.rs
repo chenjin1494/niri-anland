@@ -140,6 +140,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    #[cfg(not(feature = "anland"))]
+    if env::var_os("ANLAND").is_some() {
+        return Err(std::io::Error::other(
+            "ANLAND was requested, but this build was compiled without the `anland` feature",
+        )
+        .into());
+    }
+
     // Needs to be done before starting Tracy, so that it applies to Tracy's threads.
     niri::utils::signals::block_early().unwrap();
 
