@@ -44,7 +44,8 @@ jobs:
       - name: Bootstrap Arch Linux ARM64 and build
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          trap 'status=$?; echo "::error title=Arch bootstrap::line ${LINENO}: ${BASH_COMMAND} (exit ${status})"; exit "$status"' ERR
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends curl ca-certificates
 
@@ -55,7 +56,9 @@ jobs:
           curl -fL --retry 3 \
             https://ca.us.mirror.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz \
             -o "$ROOTFS_ARCHIVE"
+          echo "::notice title=Arch bootstrap::rootfs download complete"
           sudo tar -xpf "$ROOTFS_ARCHIVE" -C "$ROOTFS"
+          echo "::notice title=Arch bootstrap::rootfs extraction complete"
 
           cleanup() {
             sudo umount "$ROOTFS/workspace" 2>/dev/null || true
@@ -73,17 +76,24 @@ jobs:
           sudo mount -t proc proc "$ROOTFS/proc"
           sudo mount -t sysfs sysfs "$ROOTFS/sys"
           sudo mount --bind "$GITHUB_WORKSPACE" "$ROOTFS/workspace"
+          echo "::notice title=Arch bootstrap::chroot mounts ready"
 
-          sudo chroot "$ROOTFS" /usr/bin/bash --noprofile --norc -euo pipefail -c '
-            pacman-key --init
-            pacman-key --populate archlinuxarm
-            pacman -Syu --noconfirm --needed \
-              base-devel rust pkgconf clang cmake git binutils curl ca-certificates \
-              systemd-libs mesa libglvnd libxkbcommon wayland libinput dbus \
-              seatd pipewire pango libdisplay-info libadwaita
-            cd /workspace
-            bash packaging/build-arch-aarch64.sh
-          '
+          sudo chroot "$ROOTFS" /usr/bin/bash --noprofile --norc -euo pipefail <<'ARCH_BUILD'
+          set -Eeuo pipefail
+          trap 'status=$?; echo "::error title=Arch chroot::line ${LINENO}: ${BASH_COMMAND} (exit ${status})"; exit "$status"' ERR
+          pacman-key --init
+          echo "::notice title=Arch chroot::pacman key initialization complete"
+          pacman-key --populate archlinuxarm
+          echo "::notice title=Arch chroot::Arch Linux ARM keyring populated"
+          pacman -Syu --noconfirm --needed \
+            base-devel rust pkgconf clang cmake git binutils curl ca-certificates \
+            systemd-libs mesa libglvnd libxkbcommon wayland libinput dbus \
+            seatd pipewire pango libdisplay-info libadwaita
+          echo "::notice title=Arch chroot::build dependencies installed"
+          cd /workspace
+          bash packaging/build-arch-aarch64.sh
+          echo "::notice title=Arch chroot::package build complete"
+          ARCH_BUILD
       - uses: actions/upload-artifact@v4
         with:
           name: niri-anland-archlinux-aarch64
