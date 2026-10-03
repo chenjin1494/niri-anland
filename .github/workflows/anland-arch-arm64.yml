@@ -85,11 +85,17 @@ jobs:
           echo "::notice title=Arch chroot::pacman key initialization complete"
           pacman-key --populate archlinuxarm
           echo "::notice title=Arch chroot::Arch Linux ARM keyring populated"
-          pacman -Syu --noconfirm --needed \
+          if pacman -Syu --noconfirm --needed \
             base-devel rust pkgconf clang cmake git binutils curl ca-certificates \
             systemd-libs mesa libglvnd libxkbcommon wayland libinput dbus \
-            seatd pipewire pango libdisplay-info libadwaita
-          echo "::notice title=Arch chroot::build dependencies installed"
+            seatd pipewire pango libdisplay-info libadwaita 2>&1 | tee /workspace/pacman.log; then
+            echo "::notice title=Arch chroot::build dependencies installed"
+          else
+            status=$?
+            detail=$(tail -n 12 /workspace/pacman.log | tr '\n' ' ')
+            echo "::error title=Pacman failure::$detail"
+            exit "$status"
+          fi
           cd /workspace
           bash packaging/build-arch-aarch64.sh
           echo "::notice title=Arch chroot::package build complete"
